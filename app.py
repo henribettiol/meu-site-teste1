@@ -1,22 +1,29 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, render_template
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import os
+import os, json
 
 app = Flask(__name__)
 
 # Conexão com Google Sheets
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
+
+# Se estiver no Render, pega da variável de ambiente GOOGLE_CREDENTIALS
+if os.getenv("GOOGLE_CREDENTIALS"):
+    creds_json = os.getenv("GOOGLE_CREDENTIALS")
+    creds_dict = json.loads(creds_json)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+else:
+    # Local: usa o arquivo credenciais.json
+    creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
+
 client = gspread.authorize(creds)
 
-# Abra a planilha pelo nome (troque para o nome da sua planilha real!)
+# Abre a planilha (troque "CadastrosTeste" pelo nome da sua planilha real!)
 sheet = client.open("CadastrosTeste").sheet1
 
 @app.route("/", methods=["GET", "POST"])
 def cadastro():
-    # debug: checar caminho do template
-    print("templates dir:", os.listdir(os.path.join(os.path.dirname(__file__), "templates")))
     if request.method == "POST":
         nome = request.form["nome"]
         email = request.form["email"]
@@ -29,4 +36,5 @@ def cadastro():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
